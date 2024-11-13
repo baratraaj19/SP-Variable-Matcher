@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import objidData from "./objid.json" // Import the JSON file
+import CopyField from "./components/CopyField"
 
 function App() {
   const [templateId, setTemplateId] = useState("") // State for Template ID
@@ -86,6 +87,14 @@ function App() {
     setVariablesNotFound(notFoundVariables) // Set variables not found
   }
 
+  const contentToCopy = `${[...uniqueObjNames]
+    .sort((a, b) => (objidData[a] > objidData[b] ? 1 : -1)) // Sort based on objidData values
+    .map(
+      (objName) =>
+        `EXEC [dbo].[HotDocs_TemplateDataObjectInsert] 'skarthik', ${templateId}, ${objidData[objName]}, '${objName}'`
+    )
+    .join("\n")}`
+
   // Function to download the results as a text file
   const downloadResults = () => {
     const content = `
@@ -94,10 +103,11 @@ Template ID: ${templateId}
 
 Script:
 
-${uniqueObjNames
+${[...uniqueObjNames]
+  .sort((a, b) => (objidData[a] > objidData[b] ? 1 : -1)) // Sort based on objidData values
   .map(
     (objName) =>
-      `EXEc [dbo].[HotDocs_TemplateDataObjectInsert]  'skarthik', ${templateId} , ${objidData[objName]}, '${objName}'`
+      `EXEC [dbo].[HotDocs_TemplateDataObjectInsert] 'skarthik', ${templateId}, ${objidData[objName]}, '${objName}'`
   )
   .join("\n")}
 
@@ -126,9 +136,9 @@ ${result.join("\n")}
 
   return (
     <div className='min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6'>
-      v1.0.1
+      v1.1.0
       <h1 className='text-2xl font-bold mb-4'>SP Variable Matcher</h1>
-      <div className='w-full max-w-6xl flex space-x-8 bg-white p-6 rounded-lg shadow-md'>
+      <div className='w-full max-w-8xl flex space-x-8 bg-white p-6 rounded-lg shadow-md'>
         {/* Left side: Inputs */}
         <div className='w-1/2 space-y-4'>
           {/* Template ID Input */}
@@ -198,53 +208,57 @@ ${result.join("\n")}
             Download Results
           </button>
         </div>
-
         {/* Right side: Outputs */}
-        <div className='w-full max-w-6xl flex space-x-8 bg-slate-100 p-6 rounded-lg shadow-md '>
+        <div className='w-full max-w-6xl   bg-slate-100 rounded-lg shadow-md '>
           {/* ObjNames Section */}
-          <div className='space-y-4 '>
-            <div>
-              <h2 className='text-lg font-semibold mb-2'>Unique ObjNames:</h2>
-              <ul className='list-disc pl-5 space-y-1'>
-                {[...uniqueObjNames]
-                  .sort((a, b) => (objidData[a] > objidData[b] ? 1 : -1)) // Sort based on objidData values
-                  .map((objName, idx) => (
+          <div className=' pt-6 px-6'>
+            <CopyField contentToCopy={contentToCopy} />
+          </div>
+          <div className='flex space-x-8 p-6 '>
+            <div className='space-y-4 '>
+              <div>
+                <h2 className='text-lg font-semibold mb-2'>Unique ObjNames:</h2>
+                <ul className='list-disc pl-5 space-y-1'>
+                  {[...uniqueObjNames]
+                    .sort((a, b) => (objidData[a] > objidData[b] ? 1 : -1)) // Sort based on objidData values
+                    .map((objName, idx) => (
+                      <li key={idx} className='text-gray-700'>
+                        {objidData[objName]}, '{objName}'
+                        {/* Display ID and name */}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+
+              {/* Variables Not Found Section */}
+              <div>
+                <h2 className='text-lg font-semibold mb-2 text-red-600'>
+                  {variablesNotFound.length > 0 ? "Variables Not Found:" : ""}
+                </h2>
+                <ul className='list-disc pl-5 space-y-1'>
+                  {variablesNotFound.map((variable, idx) => (
                     <li key={idx} className='text-gray-700'>
-                      {objidData[objName]}, '{objName}'
-                      {/* Display ID and name */}
+                      {variable}
                     </li>
                   ))}
-              </ul>
+                </ul>
+              </div>
             </div>
-
-            {/* Variables Not Found Section */}
+            {/* Results Section */}
             <div>
-              <h2 className='text-lg font-semibold mb-2 text-red-600'>
-                Variables Not Found:
-              </h2>
+              <h2 className='text-lg font-semibold mb-2'>Results:</h2>
               <ul className='list-disc pl-5 space-y-1'>
-                {variablesNotFound.map((variable, idx) => (
+                {result.map((line, idx) => (
                   <li key={idx} className='text-gray-700'>
-                    {variable}
+                    {line}
                   </li>
                 ))}
               </ul>
             </div>
           </div>
-          {/* Results Section */}
-          <div>
-            <h2 className='text-lg font-semibold mb-2'>Results:</h2>
-            <ul className='list-disc pl-5 space-y-1'>
-              {result.map((line, idx) => (
-                <li key={idx} className='text-gray-700'>
-                  {line}
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
       </div>
-      @copyright 2024
+      <div className='pt-4 text-center text-gray-500'>@copyright 2024</div>
     </div>
   )
 }

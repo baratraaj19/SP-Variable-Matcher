@@ -2,12 +2,13 @@ import React, { useState } from "react"
 import objidData from "./objid.json" // Import the JSON file
 
 function App() {
+  const [templateId, setTemplateId] = useState("") // State for Template ID
   const [spInput, setSpInput] = useState("")
   const [variablesInput, setVariablesInput] = useState("")
   const [result, setResult] = useState([])
   const [ignoredVariablesInput, setIgnoredVariablesInput] = useState("")
   const [uniqueObjNames, setUniqueObjNames] = useState([])
-  const [notFoundVariables, setNotFoundVariables] = useState([]) // State to store variables not found
+  const [variablesNotFound, setVariablesNotFound] = useState([])
 
   // Initialize ignoredVariables as an empty array, it will be updated by the user's input
   const ignoredVariables = ignoredVariablesInput
@@ -27,7 +28,7 @@ function App() {
     const spLines = spInput.split("\n")
     const objNames = []
     const uniqueNamesSet = new Set()
-    const notFound = [] // Array to track variables that are not found
+    const notFoundVariables = []
 
     variables.forEach((variable) => {
       const [variableName, type] = variable.split(" ")
@@ -75,23 +76,75 @@ function App() {
         if (found) break
       }
 
-      // If not found, add the variable to the notFound array
       if (!found) {
-        notFound.push(variable)
+        notFoundVariables.push(variable) // Track variables not found in SP
       }
     })
 
     setResult(objNames)
     setUniqueObjNames(Array.from(uniqueNamesSet))
-    setNotFoundVariables(notFound) // Update state with not found variables
+    setVariablesNotFound(notFoundVariables) // Set variables not found
+  }
+
+  // Function to download the results as a text file
+  const downloadResults = () => {
+    const content = `
+Template ID: ${templateId}
+
+
+Script:
+
+${uniqueObjNames
+  .map(
+    (objName) =>
+      `EXEc [dbo].[HotDocs_TemplateDataObjectInsert]  'skarthik', ${templateId} , ${objidData[objName]}, '${objName}'`
+  )
+  .join("\n")}
+
+
+ObjNames:
+
+${uniqueObjNames
+  .map((objName) => `${objidData[objName]}: '${objName}'`)
+  .join("\n")}
+
+Variables Not Found:
+
+${variablesNotFound.join("\n")}
+
+Results:
+
+${result.join("\n")}
+    `
+
+    const blob = new Blob([content], { type: "text/plain" })
+    const link = document.createElement("a")
+    link.href = URL.createObjectURL(blob)
+    link.download = "results.txt"
+    link.click()
   }
 
   return (
     <div className='min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6'>
+      v1.0.1
       <h1 className='text-2xl font-bold mb-4'>SP Variable Matcher</h1>
       <div className='w-full max-w-6xl flex space-x-8 bg-white p-6 rounded-lg shadow-md'>
         {/* Left side: Inputs */}
         <div className='w-1/2 space-y-4'>
+          {/* Template ID Input */}
+          <div className='mb-2'>
+            <label className='block text-sm font-medium text-gray-700 mb-1'>
+              Template ID
+            </label>
+            <input
+              type='text'
+              placeholder='Enter Template ID'
+              className='w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+              value={templateId}
+              onChange={(e) => setTemplateId(e.target.value)}
+            />
+          </div>
+
           {/* Stored Procedure Input */}
           <div className='mb-2'>
             <label className='block text-sm font-medium text-gray-700 mb-1'>
@@ -117,6 +170,7 @@ function App() {
               onChange={(e) => setVariablesInput(e.target.value)}
             />
           </div>
+
           {/* Input field for ignored variables */}
           <div className='mb-2'>
             <label className='block text-sm font-medium text-gray-700 mb-1'>
@@ -136,56 +190,61 @@ function App() {
             className='w-full py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
             Find ObjNames
           </button>
+
+          {/* Download Results Button */}
+          <button
+            onClick={downloadResults}
+            className='w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 mt-4'>
+            Download Results
+          </button>
         </div>
 
         {/* Right side: Outputs */}
-        <div className='w-full max-w-6xl flex space-x-8 bg-white p-6 rounded-lg shadow-md'>
-          {/* Left side: Unique ObjNames */}
-          <div className='w-1/2 space-y-4'>
-            <div className='mt-4'>
+        <div className='w-full max-w-6xl flex space-x-8 bg-slate-100 p-6 rounded-lg shadow-md '>
+          {/* ObjNames Section */}
+          <div className='space-y-4 '>
+            <div>
               <h2 className='text-lg font-semibold mb-2'>Unique ObjNames:</h2>
               <ul className='list-disc pl-5 space-y-1'>
-                {uniqueObjNames.map((objName, idx) => (
-                  <li key={idx} className='text-gray-700'>
-                    {objidData[objName]}, '{objName}'{" "}
-                    {/* Display ID and name */}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Not Found Variables */}
-            {notFoundVariables.length > 0 && (
-              <div className='mt-4'>
-                <h2 className='text-lg font-semibold mb-2 text-red-600'>
-                  Variables Not Found:
-                </h2>
-                <ul className='list-disc pl-5 space-y-1 text-red-600'>
-                  {notFoundVariables.map((variable, idx) => (
+                {[...uniqueObjNames]
+                  .sort((a, b) => (objidData[a] > objidData[b] ? 1 : -1)) // Sort based on objidData values
+                  .map((objName, idx) => (
                     <li key={idx} className='text-gray-700'>
-                      {variable}
+                      {objidData[objName]}, '{objName}'
+                      {/* Display ID and name */}
                     </li>
                   ))}
-                </ul>
-              </div>
-            )}
-          </div>
+              </ul>
+            </div>
 
-          {/* Right side: Results */}
-          <div className='w-1/2 space-y-4'>
-            <div className='mt-4'>
-              <h2 className='text-lg font-semibold mb-2'>Results:</h2>
+            {/* Variables Not Found Section */}
+            <div>
+              <h2 className='text-lg font-semibold mb-2 text-red-600'>
+                {variablesNotFound.length > 0 ? "Variables Not Found:" : ""}
+              </h2>
               <ul className='list-disc pl-5 space-y-1'>
-                {result.map((res, idx) => (
+                {variablesNotFound.map((variable, idx) => (
                   <li key={idx} className='text-gray-700'>
-                    {res}
+                    {variable}
                   </li>
                 ))}
               </ul>
             </div>
+          </div>
+          {/* Results Section */}
+          <div>
+            <h2 className='text-lg font-semibold mb-2'>Results:</h2>
+            <ul className='list-disc pl-5 space-y-1'>
+              {result.map((line, idx) => (
+                <li key={idx} className='text-gray-700'>
+                  {line}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
+      <div className='pt-4 text-center text-gray-500'>@copyright 2024</div>
     </div>
   )
 }
