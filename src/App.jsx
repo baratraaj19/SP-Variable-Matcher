@@ -136,7 +136,7 @@ ${result.join("\n")}
 
   return (
     <div className='min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6'>
-      v1.1.0
+      v1.1.1
       <h1 className='text-2xl font-bold mb-4'>SP Variable Matcher</h1>
       <div className='w-full max-w-8xl flex space-x-8 bg-white p-6 rounded-lg shadow-md'>
         {/* Left side: Inputs */}
@@ -231,7 +231,7 @@ ${result.join("\n")}
               </div>
 
               {/* Variables Not Found Section */}
-              <div>
+              <div className='bg-red-100 p-4 rounded-lg'>
                 <h2 className='text-lg font-semibold mb-2 text-red-600'>
                   {variablesNotFound.length > 0 ? "Variables Not Found:" : ""}
                 </h2>
