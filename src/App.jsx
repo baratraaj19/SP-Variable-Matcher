@@ -126,6 +126,7 @@ ${result.join("\n")}
 
   return (
     <div className='min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6'>
+      v1.0.1
       <h1 className='text-2xl font-bold mb-4'>SP Variable Matcher</h1>
       <div className='w-full max-w-6xl flex space-x-8 bg-white p-6 rounded-lg shadow-md'>
         {/* Left side: Inputs */}
@@ -205,11 +206,14 @@ ${result.join("\n")}
             <div>
               <h2 className='text-lg font-semibold mb-2'>Unique ObjNames:</h2>
               <ul className='list-disc pl-5 space-y-1'>
-                {uniqueObjNames.map((objName, idx) => (
-                  <li key={idx} className='text-gray-700'>
-                    {objidData[objName]}, '{objName}'{/* Display ID and name */}
-                  </li>
-                ))}
+                {[...uniqueObjNames]
+                  .sort((a, b) => (objidData[a] > objidData[b] ? 1 : -1)) // Sort based on objidData values
+                  .map((objName, idx) => (
+                    <li key={idx} className='text-gray-700'>
+                      {objidData[objName]}, '{objName}'
+                      {/* Display ID and name */}
+                    </li>
+                  ))}
               </ul>
             </div>
 
@@ -240,6 +244,7 @@ ${result.join("\n")}
           </div>
         </div>
       </div>
+      @copyright 2024
     </div>
   )
 }
