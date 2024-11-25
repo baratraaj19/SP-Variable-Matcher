@@ -10,6 +10,7 @@ function App() {
   const [ignoredVariablesInput, setIgnoredVariablesInput] = useState("")
   const [uniqueObjNames, setUniqueObjNames] = useState([])
   const [variablesNotFound, setVariablesNotFound] = useState([])
+  const [filteredOutLines, setFilteredOutLines] = useState([])
 
   // Initialize ignoredVariables as an empty array, it will be updated by the user's input
   const ignoredVariables = ignoredVariablesInput
@@ -18,13 +19,30 @@ function App() {
     .filter((v) => v) // Remove empty values
 
   const handleFindObjNames = () => {
+    const filteredOutLines = []
     // Filter out variables to ignore
     const variables = variablesInput
       .split("\n")
       .map((v) => v.trim()) // Trim any extra spaces
-      .filter(
-        (v) => v && !ignoredVariables.includes(v) // Exclude variables in the ignored list and empty values
-      )
+      .filter((v) => {
+        // Exclude variables in the ignored list or empty values
+        const isIgnored = ignoredVariables.includes(v)
+
+        // Check if the line contains any of the specified substrings
+        const containsFilteredSubstring = [
+          "SentenceStyle",
+          "BlockStyle",
+          "AllFirmAttorney",
+          "SelectedAttorney",
+          "Dummy",
+        ].some((substring) => v.includes(substring))
+
+        if (containsFilteredSubstring) {
+          filteredOutLines.push(v) // Store the line for user display
+        }
+
+        return v && !isIgnored && !containsFilteredSubstring // Include only valid lines
+      })
 
     const spLines = spInput.split("\n")
     const objNames = []
@@ -62,10 +80,13 @@ function App() {
               caseLine.startsWith("CASE WHEN EXISTS") ||
               caseLine.startsWith("WHEN EXISTS")
             ) {
-              const objNameMatch = caseLine.match(/ObjName='(\w+)'/)
+              const objNameMatch = caseLine.match(
+                /ObjName='(\w+)'|ObjName\s+IN\s+\(\s*'([^']+)'/i
+              )
               if (objNameMatch) {
-                const objName = objNameMatch[1]
-                objNames.push(`${variableName}: ${objName}`) // Get ID from objidData
+                // Check which part of the regex matched (single or IN clause)
+                const objName = objNameMatch[1] || objNameMatch[2]
+                objNames.push(`${variableName}: ${objName}`) // Use the extracted objName
                 uniqueNamesSet.add(objName)
                 found = true
               }
@@ -85,7 +106,16 @@ function App() {
     setResult(objNames)
     setUniqueObjNames(Array.from(uniqueNamesSet))
     setVariablesNotFound(notFoundVariables) // Set variables not found
+    setFilteredOutLines(filteredOutLines)
   }
+
+  // const contentToCopy = `${[...uniqueObjNames]
+  //   .sort((a, b) => (objidData[a] > objidData[b] ? 1 : -1)) // Sort based on objidData values
+  //   .map(
+  //     (objName) =>
+  //       `EXEC [dbo].[HotDocs_TemplateDataObjectInsert] 'skarthik', ${templateId}, ${objidData[objName]}, '${objName}'`
+  //   )
+  //   .join("\n")}`
 
   const contentToCopy = `${[...uniqueObjNames]
     .sort((a, b) => (objidData[a] > objidData[b] ? 1 : -1)) // Sort based on objidData values
@@ -93,7 +123,13 @@ function App() {
       (objName) =>
         `EXEC [dbo].[HotDocs_TemplateDataObjectInsert] 'skarthik', ${templateId}, ${objidData[objName]}, '${objName}'`
     )
-    .join("\n")}`
+    .join("\n")}
+
+${
+  variablesNotFound.includes("FirstLegal DT")
+    ? `EXEC [dbo].[HotDocs_TemplateDataObjectInsert] 'skarthik', ${templateId}, 14, 'KeyDates'`
+    : ""
+}`.trim()
 
   // Function to download the results as a text file
   const downloadResults = () => {
@@ -122,6 +158,11 @@ Variables Not Found:
 
 ${variablesNotFound.join("\n")}
 
+Unwanted lines:
+
+${filteredOutLines.join("\n")}
+
+
 Results:
 
 ${result.join("\n")}
@@ -136,7 +177,7 @@ ${result.join("\n")}
 
   return (
     <div className='min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6'>
-      v1.1.1
+      v2.1.1
       <h1 className='text-2xl font-bold mb-4'>SP Variable Matcher</h1>
       <div className='w-full max-w-8xl flex space-x-8 bg-white p-6 rounded-lg shadow-md'>
         {/* Left side: Inputs */}
@@ -238,7 +279,24 @@ ${result.join("\n")}
                 <ul className='list-disc pl-5 space-y-1'>
                   {variablesNotFound.map((variable, idx) => (
                     <li key={idx} className='text-gray-700'>
-                      {variable}
+                      {variable === "FirstLegal DT" ? (
+                        <div className='text-green-500 font-semibold'>
+                          KeyDates objname is printed for FirstLegal DT
+                        </div>
+                      ) : (
+                        variable
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className=' bg-amber-100 p-4 rounded-lg'>
+                <h2 className='text-lg font-semibold mb-2'>Unwanted lines:</h2>
+                <ul className='list-disc pl-5 space-y-1'>
+                  {filteredOutLines.map((line, index) => (
+                    <li key={index} className='text-gray-700'>
+                      {line}
                     </li>
                   ))}
                 </ul>

@@ -177,5 +177,8 @@
   "TitleReview_JrFederalLien": 177,
   "IsUSADefendant": 178,
   "JudgmentFigures": 179,
-  "LevFacFigures": 180
+  "LevFacFigures": 180,
+  "FeesCostsFigures": 181,
+  "ExpertAttorney": 182,
+  "DefendantJoinReason": 183
 }
