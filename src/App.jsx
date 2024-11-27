@@ -59,7 +59,7 @@ function App() {
 
         // First, check if the variable exists in this line
         const variablePattern = new RegExp(
-          `\\[(?:CaseInfo/)?(?:_x090_)?${variableName}_x0020_${type}_x007C_HD_[A-Z]+\\]`
+          `\\[(?:[a-zA-Z]*/)?(?:_x090_)?${variableName}_x0020_${type}_x007C_HD_[A-Z]+\\]`
         )
 
         if (variablePattern.test(line)) {
